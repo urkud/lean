@@ -1028,10 +1028,13 @@ vm_decl_cell::vm_decl_cell(name const & n, unsigned idx, unsigned arity, vm_cfun
 
 vm_decl_cell::vm_decl_cell(name const & n, unsigned idx, unsigned arity, unsigned code_sz, vm_instr const * code,
                            list<vm_local_info> const & args_info, optional<pos_info> const & pos,
+                           optional<unsigned> const & overridden,
                            optional<std::string> const & olean):
-    m_rc(0), m_kind(vm_decl_kind::Bytecode), m_name(n), m_idx(idx), m_arity(arity),
-    m_args_info(args_info), m_pos(pos), m_olean(olean),
-    m_code_size(code_sz) {
+       m_rc(0), m_kind(vm_decl_kind::Bytecode), m_name(n), m_idx(idx), m_arity(arity),
+       m_args_info(args_info), m_pos(pos),
+       m_olean(olean),
+       m_overridden(overridden),
+       m_code_size(code_sz) {
     m_code = new vm_instr[code_sz];
     for (unsigned i = 0; i < code_sz; i++)
         m_code[i] = code[i];
@@ -1045,6 +1048,24 @@ vm_decl_cell::~vm_decl_cell() {
 void vm_decl_cell::dealloc() {
     delete this;
 }
+
+static name * g_vm_override_enabled;
+
+vm_decl set_overridden(vm_decl const & d, unsigned idx_override) {
+    // [TODO] is this correctly dealing with reference counts?
+    return vm_decl(
+        d.get_name(),
+        d.get_idx(),
+        d.get_arity(),
+        d.get_code_size(),
+        d.get_code(),
+        d.get_args_info(),
+        d.get_pos_info(),
+        optional<unsigned>(idx_override),
+        d.get_olean()
+    );
+};
+
 
 /** \brief VM builtin functions */
 static name_map<std::tuple<unsigned, char const *, vm_function>> * g_vm_builtins = nullptr;
@@ -1148,6 +1169,18 @@ struct vm_decls : public environment_extension {
         m_decls.insert(idx, vm_decl(n, idx, arity, fn));
     }
 
+    void add_override(name const & n, name const & n_override) {
+        auto idx = get_vm_index(n);
+        auto idx_override = get_vm_index(n_override);
+        // [TODO] error if either of the declarations do not exist.
+        const vm_decl decl = *m_decls.find(idx);
+        const vm_decl decl_override = *m_decls.find(idx_override);
+        if (decl.get_arity() != decl_override.get_arity()) {
+            throw exception(sstream() << "Arities of '" << n << "' and '" << n_override << "' do not match.");
+        }
+        update(set_overridden(decl,idx_override));
+    }
+
     unsigned reserve(name const & n, unsigned arity) {
         unsigned idx = get_vm_index(n);
         if (m_decls.contains(idx))
@@ -1178,6 +1211,12 @@ static vm_decls const & get_extension(environment const & env) {
 }
 static environment update(environment const & env, vm_decls const & ext) {
     return env.update(g_ext->m_ext_id, std::make_shared<vm_decls>(ext));
+}
+
+environment add_override(environment const & env, name const & n, name const & n_override) {
+    auto ext = get_extension(env);
+    ext.add_override(n,n_override);
+    return update(env,ext);
 }
 
 static environment add_native(environment const & env, name const & n, unsigned arity, vm_cfunction fn) {
@@ -1290,7 +1329,7 @@ struct vm_code_modification : public modification {
 
     void serialize(serializer & s) const override {
         unsigned code_sz = m_decl.get_code_size();
-        s << m_decl.get_name() << m_decl.get_arity() << code_sz << m_decl.get_pos_info();
+        s << m_decl.get_name() << m_decl.get_arity() << code_sz << m_decl.get_pos_info() << m_decl.get_overridden();
         write_list(s, m_decl.get_args_info());
         auto c = m_decl.get_code();
         for (unsigned i = 0; i < code_sz; i++)
@@ -1298,15 +1337,15 @@ struct vm_code_modification : public modification {
     }
 
     static std::shared_ptr<modification const> deserialize(deserializer & d) {
-        name fn; unsigned arity; unsigned code_sz; optional<pos_info> pos;
-        d >> fn >> arity >> code_sz >> pos;
+        name fn; unsigned arity; unsigned code_sz; optional<pos_info> pos; optional<unsigned> overridden;
+        d >> fn >> arity >> code_sz >> pos >> overridden;
         auto args_info = read_list<vm_local_info>(d);
         buffer<vm_instr> code;
         for (unsigned i = 0; i < code_sz; i++)
             code.emplace_back(read_vm_instr(d));
         optional<std::string> file_name; // TODO(gabriel)
         return std::make_shared<vm_code_modification>(
-                vm_decl(fn, get_vm_index(fn), arity, code_sz, code.data(), args_info, pos, file_name));
+                vm_decl(fn, get_vm_index(fn), arity, code_sz, code.data(), args_info, pos, overridden, file_name));
     }
 };
 
@@ -1418,7 +1457,7 @@ vm_state::vm_state(environment const & env, options const & opts):
 vm_state::~vm_state() {
 }
 
-vm_decl const & vm_state::get_decl(unsigned idx) const {
+vm_decl const & vm_state::get_decl_no_override(unsigned idx) const {
     lean_assert(idx < m_decl_vector.size());
     vm_decl const & d = m_decl_vector[idx];
     if (d) return d;
@@ -1428,6 +1467,17 @@ vm_decl const & vm_state::get_decl(unsigned idx) const {
         lean_unreachable();
     }
     return m_decl_vector[idx];
+}
+
+vm_decl const & vm_state::get_decl(unsigned idx) const {
+    vm_decl const & d = get_decl_no_override(idx);
+    optional<unsigned> o = d.get_overridden();
+    if (o && get_options().get_bool(*g_vm_override_enabled,true)) {
+        return get_decl(o.value());
+    }
+    else {
+        return d;
+    }
 }
 
 vm_cases_function const & vm_state::get_builtin_cases(unsigned idx) const {
@@ -3283,7 +3333,7 @@ void vm_state::run() {
                     goto main_loop;
                 }
             }
-            invoke_global(decl);
+            invoke(decl);
             goto main_loop;
         }
         case opcode::InvokeBuiltin: {
@@ -3388,6 +3438,15 @@ optional<vm_decl> vm_state::get_decl(name const & n) const {
     auto idx = get_vm_index(n);
     if (m_decl_map.contains(idx))
         return optional<vm_decl>(get_decl(idx));
+    else
+        return optional<vm_decl>();
+}
+optional<vm_decl> vm_state::get_decl_no_override(name const & n) const {
+    return get_decl_no_override_of_idx(get_vm_index(n));
+}
+optional<vm_decl> vm_state::get_decl_no_override_of_idx(unsigned int idx) const {
+    if (m_decl_map.contains(idx))
+        return optional<vm_decl>(get_decl_no_override(idx));
     else
         return optional<vm_decl>();
 }
@@ -3692,7 +3751,7 @@ void finalize_vm_core() {
     delete g_vm_cases_builtins;
     delete g_vm_index_manager;
 }
-
+/// Name of the option to disable vm_overrides.
 void initialize_vm() {
     g_ext = new vm_decls_reg();
     // g_may_update_vm_builtins = false;
@@ -3708,6 +3767,12 @@ void initialize_vm() {
     /* TODO(Leo): move to .lean after we add primitives for creating new options on .lean files */
     register_bool_option(name({"debugger", "autorun"}), false,
                          "(debugger) skip debugger startup messages and initial prompt");
+    g_vm_override_enabled = new name("vm_override","enabled");
+    register_bool_option(
+        *g_vm_override_enabled,
+        true,
+        "enable/disable VM overrides."
+    );
 }
 
 void finalize_vm() {
@@ -3719,6 +3784,7 @@ void finalize_vm() {
     delete g_profiler_freq;
 #endif
     delete g_debugger;
+    delete g_vm_override_enabled;
 }
 }
 
