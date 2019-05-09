@@ -1,10 +1,15 @@
-/* Author: E.W.Ayers */
+/*
+Copyright (c) E.W.Ayers. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+
+Author: E.W.Ayers
+*/
 #include <string>
 #include "util/optional.h"
 #include "util/name.h"
 #include "library/attribute_manager.h"
-#include "vm_name.h"
-#include "vm.h"
+#include "library/vm/vm_name.h"
+#include "library/vm/vm.h"
 #include "frontends/lean/parser.h"
 
 namespace lean {
@@ -42,11 +47,9 @@ void initialize_vm_override() {
       vm_override_attribute(*g_vm_override, "Override this declaration with the given declaration when evaluating in the VM."
         , [](environment const & env, io_state const &, name const & d, unsigned, bool) -> environment {
           // this is called when the attribute is added
-          auto data = get_vm_override_attribute().get(env,d);
+          auto data = get_vm_override_attribute().get(env, d);
           return add_override(env, d, data->m_name);
-        }
-      )
-    );
+        } ) );
 }
 
 void finalize_vm_override() {}

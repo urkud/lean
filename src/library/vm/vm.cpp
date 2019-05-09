@@ -1062,8 +1062,7 @@ vm_decl set_overridden(vm_decl const & d, unsigned idx_override) {
         d.get_args_info(),
         d.get_pos_info(),
         optional<unsigned>(idx_override),
-        d.get_olean()
-    );
+        d.get_olean());
 };
 
 
@@ -1178,7 +1177,7 @@ struct vm_decls : public environment_extension {
         if (decl.get_arity() != decl_override.get_arity()) {
             throw exception(sstream() << "Arities of '" << n << "' and '" << n_override << "' do not match.");
         }
-        update(set_overridden(decl,idx_override));
+        update(set_overridden(decl, idx_override));
     }
 
     unsigned reserve(name const & n, unsigned arity) {
@@ -1215,8 +1214,8 @@ static environment update(environment const & env, vm_decls const & ext) {
 
 environment add_override(environment const & env, name const & n, name const & n_override) {
     auto ext = get_extension(env);
-    ext.add_override(n,n_override);
-    return update(env,ext);
+    ext.add_override(n, n_override);
+    return update(env, ext);
 }
 
 static environment add_native(environment const & env, name const & n, unsigned arity, vm_cfunction fn) {
@@ -1472,10 +1471,9 @@ vm_decl const & vm_state::get_decl_no_override(unsigned idx) const {
 vm_decl const & vm_state::get_decl(unsigned idx) const {
     vm_decl const & d = get_decl_no_override(idx);
     optional<unsigned> o = d.get_overridden();
-    if (o && get_options().get_bool(*g_vm_override_enabled,true)) {
+    if (o && get_options().get_bool(*g_vm_override_enabled, true)) {
         return get_decl(o.value());
-    }
-    else {
+    } else {
         return d;
     }
 }
@@ -3767,12 +3765,11 @@ void initialize_vm() {
     /* TODO(Leo): move to .lean after we add primitives for creating new options on .lean files */
     register_bool_option(name({"debugger", "autorun"}), false,
                          "(debugger) skip debugger startup messages and initial prompt");
-    g_vm_override_enabled = new name("vm_override","enabled");
+    g_vm_override_enabled = new name("vm_override", "enabled");
     register_bool_option(
         *g_vm_override_enabled,
         true,
-        "enable/disable VM overrides."
-    );
+        "enable/disable VM overrides.");
 }
 
 void finalize_vm() {

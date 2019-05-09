@@ -1,4 +1,9 @@
-/* Authors: E.W.Ayers, R.Y.Lewis */
+/*
+Copyright (c) E.W.Ayers. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+
+Authors: E.W.Ayers, R.Y.Lewis
+*/
 #include "library/vm/vm.h"
 #include "library/vm/vm_string.h"
 #include "library/vm/vm_nat.h"
@@ -29,8 +34,7 @@ optional<float> try_to_float(vm_obj const & o) {
     if (LEAN_LIKELY(is_external(o))) {
         float f = static_cast<vm_float*>(to_external(o))->m_val;
         return optional<float>(f);
-    }
-    else {
+    } else {
         return optional<float>();
     }
 }
@@ -73,8 +77,8 @@ vm_obj float_lt(vm_obj const & a1, vm_obj const & a2) { return mk_vm_bool(to_flo
 vm_obj float_dec_eq(vm_obj const & a1, vm_obj const & a2) { return mk_vm_bool(to_float(a1) == to_float(a2)); }
 
 vm_obj float_of_nat(vm_obj const & a) {
-    //[TODO] check that the nat isn't too big to fit in an unsigned
-    return mk_vm_float((float)(to_unsigned(a)));
+    // [TODO] check that the nat isn't too big to fit in an unsigned
+    return mk_vm_float(static_cast<float>(to_unsigned(a)));
 }
 vm_obj float_of_int(vm_obj const & i) {
     return mk_vm_float(to_int(i));
@@ -88,43 +92,43 @@ vm_obj float_repr(vm_obj const & a) {
 }
 
 void initialize_vm_float() {
-    DECLARE_VM_BUILTIN(name({"native","float","add"}), float_add);
-    DECLARE_VM_BUILTIN(name({"native","float","sub"}), float_sub);
-    DECLARE_VM_BUILTIN(name({"native","float","neg"}), float_neg);
-    DECLARE_VM_BUILTIN(name({"native","float","mul"}), float_mul);
-    DECLARE_VM_BUILTIN(name({"native","float","div"}), float_div);
+    DECLARE_VM_BUILTIN(name({"native", "float", "add"}), float_add);
+    DECLARE_VM_BUILTIN(name({"native", "float", "sub"}), float_sub);
+    DECLARE_VM_BUILTIN(name({"native", "float", "neg"}), float_neg);
+    DECLARE_VM_BUILTIN(name({"native", "float", "mul"}), float_mul);
+    DECLARE_VM_BUILTIN(name({"native", "float", "div"}), float_div);
 
-    DECLARE_VM_BUILTIN(name({"native","float","pow"}), float_pow);
-    DECLARE_VM_BUILTIN(name({"native","float","sqrt"}), float_sqrt);
-    DECLARE_VM_BUILTIN(name({"native","float","exp"}), float_exp);
-    DECLARE_VM_BUILTIN(name({"native","float","log"}), float_log);
+    DECLARE_VM_BUILTIN(name({"native", "float", "pow"}), float_pow);
+    DECLARE_VM_BUILTIN(name({"native", "float", "sqrt"}), float_sqrt);
+    DECLARE_VM_BUILTIN(name({"native", "float", "exp"}), float_exp);
+    DECLARE_VM_BUILTIN(name({"native", "float", "log"}), float_log);
 
-    DECLARE_VM_BUILTIN(name({"native","float","pi"}), float_pi);
+    DECLARE_VM_BUILTIN(name({"native", "float", "pi"}), float_pi);
 
-    DECLARE_VM_BUILTIN(name({"native","float","sin"}), float_sin);
-    DECLARE_VM_BUILTIN(name({"native","float","cos"}), float_cos);
-    DECLARE_VM_BUILTIN(name({"native","float","tan"}), float_tan);
+    DECLARE_VM_BUILTIN(name({"native", "float", "sin"}), float_sin);
+    DECLARE_VM_BUILTIN(name({"native", "float", "cos"}), float_cos);
+    DECLARE_VM_BUILTIN(name({"native", "float", "tan"}), float_tan);
 
-    DECLARE_VM_BUILTIN(name({"native","float","asin"}), float_asin);
-    DECLARE_VM_BUILTIN(name({"native","float","acos"}), float_acos);
-    DECLARE_VM_BUILTIN(name({"native","float","atan"}), float_atan);
-    DECLARE_VM_BUILTIN(name({"native","float","atan2"}), float_atan2);
+    DECLARE_VM_BUILTIN(name({"native", "float", "asin"}), float_asin);
+    DECLARE_VM_BUILTIN(name({"native", "float", "acos"}), float_acos);
+    DECLARE_VM_BUILTIN(name({"native", "float", "atan"}), float_atan);
+    DECLARE_VM_BUILTIN(name({"native", "float", "atan2"}), float_atan2);
 
-    DECLARE_VM_BUILTIN(name({"native","float","sinh"}), float_sinh);
-    DECLARE_VM_BUILTIN(name({"native","float","cosh"}), float_cosh);
-    DECLARE_VM_BUILTIN(name({"native","float","tanh"}), float_tanh);
+    DECLARE_VM_BUILTIN(name({"native", "float", "sinh"}), float_sinh);
+    DECLARE_VM_BUILTIN(name({"native", "float", "cosh"}), float_cosh);
+    DECLARE_VM_BUILTIN(name({"native", "float", "tanh"}), float_tanh);
 
-    DECLARE_VM_BUILTIN(name({"native","float","abs"}), float_abs);
-    DECLARE_VM_BUILTIN(name({"native","float","ceil"}), float_ceil);
-    DECLARE_VM_BUILTIN(name({"native","float","floor"}), float_floor);
+    DECLARE_VM_BUILTIN(name({"native", "float", "abs"}), float_abs);
+    DECLARE_VM_BUILTIN(name({"native", "float", "ceil"}), float_ceil);
+    DECLARE_VM_BUILTIN(name({"native", "float", "floor"}), float_floor);
 
-    DECLARE_VM_BUILTIN(name({"native","float","lt"}), float_lt);
-    DECLARE_VM_BUILTIN(name({"native","float","dec_eq"}), float_dec_eq);
+    DECLARE_VM_BUILTIN(name({"native", "float", "lt"}), float_lt);
+    DECLARE_VM_BUILTIN(name({"native", "float", "dec_eq"}), float_dec_eq);
 
-    DECLARE_VM_BUILTIN(name({"native","float","of_nat"}), float_of_nat);
-    DECLARE_VM_BUILTIN(name({"native","float","of_int"}), float_of_int);
+    DECLARE_VM_BUILTIN(name({"native", "float", "of_nat"}), float_of_nat);
+    DECLARE_VM_BUILTIN(name({"native", "float", "of_int"}), float_of_int);
 
-    DECLARE_VM_BUILTIN(name({"native","float","to_repr"}), float_repr);
+    DECLARE_VM_BUILTIN(name({"native", "float", "to_repr"}), float_repr);
 }
 void finalize_vm_float() {
 }

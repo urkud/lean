@@ -1,0 +1,13 @@
+@[vm_override]
+meta def hello : name :=
+id_rhs name (name.mk_string "name" (name.mk_string "hello" name.anonymous))
+hello_override.name
+hello.name
+hello_override.name
+vm_override.lean:21:0: warning: declaration 'float' uses sorry
+vm_override.lean:24:0: warning: declaration 'add' uses sorry
+vm_override.lean:29:0: warning: declaration 'div' uses sorry
+vm_override.lean:34:0: warning: declaration 'float.pow' uses sorry
+vm_override.lean:39:0: warning: declaration 'zero' uses sorry
+vm_override.lean:42:0: warning: declaration 'one' uses sorry
+1.47059e+06

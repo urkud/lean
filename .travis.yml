@@ -7,7 +7,7 @@ dist: trusty
 branches:
   only:
     - master
-    - travis-ccache
+    - vm_override
 group: deprecated-2017Q3
 addons:
   apt:
