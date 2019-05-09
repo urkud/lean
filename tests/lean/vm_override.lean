@@ -18,6 +18,7 @@ set_option vm_override.enabled true
 
 #eval hello
 
+@[vm_override native.float]
 def float : Type := sorry
 
 @[vm_override native.float.add]

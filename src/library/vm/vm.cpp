@@ -18,6 +18,7 @@ Author: Leonardo de Moura
 #include "util/small_object_allocator.h"
 #include "util/sexpr/option_declarations.h"
 #include "util/shared_mutex.h"
+#include "kernel/replace_fn.h"
 #include "library/constants.h"
 #include "library/kernel_serializer.h"
 #include "library/trace.h"
@@ -1140,6 +1141,7 @@ void declare_vm_cases_builtin(name const & n, char const * i, vm_cases_function 
 struct vm_decls : public environment_extension {
     unsigned_map<vm_decl>           m_decls;
     unsigned_map<vm_cases_function> m_cases;
+    name_map<name>                  m_ovr;
 
     name                            m_monitor;
 
@@ -1168,16 +1170,26 @@ struct vm_decls : public environment_extension {
         m_decls.insert(idx, vm_decl(n, idx, arity, fn));
     }
 
+    expr override_type(expr const & t) {
+        return replace(t, [this](expr const & e, unsigned) {
+                if (!is_constant(e)) return optional<expr>();
+                if (auto x = m_ovr.find(const_name(e))) {
+                    return optional<expr>(mk_constant(*x, const_levels(e)));
+                } else { return optional<expr>(); } });
+    }
+
     void add_override(name const & n, name const & n_override) {
         auto idx = get_vm_index(n);
         auto idx_override = get_vm_index(n_override);
-        // [TODO] error if either of the declarations do not exist.
-        const vm_decl decl = *m_decls.find(idx);
-        const vm_decl decl_override = *m_decls.find(idx_override);
-        if (decl.get_arity() != decl_override.get_arity()) {
-            throw exception(sstream() << "Arities of '" << n << "' and '" << n_override << "' do not match.");
+        m_ovr.insert(n, n_override);
+        vm_decl const * decl_override = m_decls.find(idx_override);
+        if ( !decl_override ) { return; }
+        vm_decl const * decl = m_decls.find(idx);
+        if ( !decl ) {
+            reserve(n, decl_override->get_arity());
+            decl = m_decls.find(idx);
         }
-        update(set_overridden(decl, idx_override));
+        update(set_overridden(*decl, idx_override));
     }
 
     unsigned reserve(name const & n, unsigned arity) {
@@ -1213,7 +1225,18 @@ static environment update(environment const & env, vm_decls const & ext) {
 }
 
 environment add_override(environment const & env, name const & n, name const & n_override) {
+    type_context_old ctx(env, options(), local_context());
     auto ext = get_extension(env);
+    auto t = ext.override_type(env.get(n).get_type());
+    auto t_ovr = env.get(n_override).get_type();
+
+    if (!ctx.is_def_eq(t, t_ovr)) {
+        formatter_factory const & fmtf = get_global_ios().get_formatter_factory();
+        formatter fmt = fmtf(env, options(), ctx);
+        throw exception(sstream() << "Type mismatch with override:\n" <<
+                        n << " : " << fmt(t) << "\n" <<
+                        n_override << " : " << fmt(t_ovr));
+    }
     ext.add_override(n, n_override);
     return update(env, ext);
 }
