@@ -1170,7 +1170,7 @@ struct vm_decls : public environment_extension {
         m_decls.insert(idx, vm_decl(n, idx, arity, fn));
     }
 
-    expr override_type(expr const & t) {
+    expr override_type(expr const & t) const {
         return replace(t, [this](expr const & e, unsigned) {
                 if (!is_constant(e)) return optional<expr>();
                 if (auto x = m_ovr.find(const_name(e))) {
@@ -1224,20 +1224,56 @@ static environment update(environment const & env, vm_decls const & ext) {
     return env.update(g_ext->m_ext_id, std::make_shared<vm_decls>(ext));
 }
 
-environment add_override(environment const & env, name const & n, name const & n_override) {
-    type_context_old ctx(env, options(), local_context());
-    auto ext = get_extension(env);
-    auto t = ext.override_type(env.get(n).get_type());
-    auto t_ovr = env.get(n_override).get_type();
-    ctx.ignore_universes();
-    if (!ctx.is_def_eq(t, t_ovr)) {
-        formatter_factory const & fmtf = get_global_ios().get_formatter_factory();
-        formatter fmt = fmtf(env, options(), ctx);
-        throw exception(sstream() << "Type mismatch with override:\n" <<
-                        n << " : " << fmt(t) << "\n" <<
-                        n_override << " : " << fmt(t_ovr));
+struct vm_type_checker {
+    type_context_old m_ctx;
+    environment const & m_env;
+    vm_decls const & m_ext;
+    vm_type_checker(environment const & env,
+                    vm_decls const & ext) :
+        m_ctx(env, options(), local_context()), m_env(env), m_ext(ext) {
+        m_ctx.ignore_universes();
     }
-    ext.add_override(n, n_override);
+    void operator() (name const & n, name const & n_ovr) {
+        auto t = m_ext.override_type(m_env.get(n).get_type());
+        auto t_ovr = m_env.get(n_ovr).get_type();
+        if (!m_ctx.is_def_eq(t, t_ovr)) {
+            formatter_factory const & fmtf = get_global_ios().get_formatter_factory();
+            formatter fmt = fmtf(m_env, options(), m_ctx);
+            throw exception(sstream() << "type mismatch with override:\n\n" <<
+                            n << " : " << fmt(t) << "\n" <<
+                            n_ovr << " : " << fmt(t_ovr));
+        }
+    }
+};
+
+environment add_override(environment const & env, name const & n, name const & n_ovr, optional<name> const & ns) {
+    auto ext = get_extension(env);
+    vm_type_checker checker(env, ext);
+    auto t = env.get(n).get_type();
+    checker(n, n_ovr);
+    ext.add_override(n, n_ovr);
+    optional<inductive::inductive_decl> decl = inductive::is_inductive_decl(env, n);
+    if (is_type(t)) {
+        if (!decl && !env.get(n).is_constant_assumption()) {
+            throw exception(sstream() << "overridden type '" << n << "' is neither an inductive type nor a constant.");
+        }
+        if (decl) {
+            if (!ns) {
+                throw exception(sstream() << "overridden inductive type '" << n <<
+                                "' must specify a namespace which contains overrides for its recursor and constructors.");
+            }
+            for (auto intro : decl->m_intro_rules) {
+                name n = mlocal_pp_name(intro);
+                name n_ovr(*ns + n.drop_prefix());
+                checker(n, n_ovr);
+                ext.add_override(n, n_ovr);
+            }
+            name rec = inductive::get_elim_name(n);
+            name rec_ovr(*ns, "rec");
+            checker(rec, rec_ovr);
+            ext.add_override(rec, rec_ovr);
+        }
+    }
     return update(env, ext);
 }
 

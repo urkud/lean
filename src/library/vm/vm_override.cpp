@@ -16,6 +16,7 @@ namespace lean {
 static name * g_vm_override;
 struct vm_override_attribute_data : public attr_data {
     name m_name;
+    optional<name> m_ns;
     vm_override_attribute_data() {}
     vm_override_attribute_data(name const & n) : m_name(n) {}
     virtual unsigned hash() const override {return m_name.hash();}
@@ -28,6 +29,12 @@ struct vm_override_attribute_data : public attr_data {
         auto & p2 = *static_cast<parser *>(&p);
         auto n = p2.check_constant_next("not a constant");
         m_name = n;
+        if (p2.curr_is_identifier()) {
+            m_ns = optional<name>(p2.get_name_val());
+            p2.next();
+        } else {
+            m_ns = optional<name>();
+        }
     }
 };
 bool operator==(vm_override_attribute_data const & d1, vm_override_attribute_data const & d2) {
@@ -48,7 +55,7 @@ void initialize_vm_override() {
         , [](environment const & env, io_state const &, name const & d, unsigned, bool) -> environment {
           // this is called when the attribute is added
           auto data = get_vm_override_attribute().get(env, d);
-          return add_override(env, d, data->m_name);
+          return add_override(env, d, data->m_name, data->m_ns);
         } ) );
 }
 

@@ -902,7 +902,7 @@ void declare_vm_cases_builtin(name const & n, char const * internal_name, vm_cas
 optional<unsigned> get_vm_builtin_cases_idx(environment const & env, name const & n);
 
 /** Replace the vm declaration of `n` with the vm declaration at `n_override`. */
-environment add_override(environment const & env, name const & n, name const & n_override);
+environment add_override(environment const & env, name const & n, name const & n_override, optional<name> const & override_ns);
 
 /** Register in the given environment \c fn as the implementation for function \c n.
     These APIs should be used when we dynamically load native code stored in a shared object (aka DLL)

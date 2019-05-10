@@ -18,8 +18,33 @@ set_option vm_override.enabled true
 
 #eval hello
 
-@[vm_override native.float]
-def float : Type 1 := sorry
+@[vm_override native.float native.float]
+inductive float₀ : Type 1
+| mk : ℕ → float₀
+
+namespace native.float₁
+
+meta def mk :  ℕ → native.float := sorry
+
+meta def rec : ℕ := 3
+
+end native.float₁
+
+@[vm_override native.float native.float₁]
+inductive float₁ : Type 1
+| mk : ℕ → float₁
+
+namespace  native.float
+
+meta def mk :  ℕ → native.float := sorry
+
+meta def rec {C : native.float → Sort*} (f : Π (a : ℕ), C (native.float.mk a)) (n : native.float) : C n := sorry
+
+end native.float
+
+@[vm_override native.float native.float]
+inductive float : Type 1
+| mk : ℕ → float
 
 @[vm_override native.float.add]
 def add (a b : float) : float := sorry
