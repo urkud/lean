@@ -1229,7 +1229,7 @@ environment add_override(environment const & env, name const & n, name const & n
     auto ext = get_extension(env);
     auto t = ext.override_type(env.get(n).get_type());
     auto t_ovr = env.get(n_override).get_type();
-
+    ctx.ignore_universes();
     if (!ctx.is_def_eq(t, t_ovr)) {
         formatter_factory const & fmtf = get_global_ios().get_formatter_factory();
         formatter fmt = fmtf(env, options(), ctx);
