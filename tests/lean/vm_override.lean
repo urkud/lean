@@ -40,6 +40,8 @@ meta def mk :  ℕ → native.float := sorry
 
 meta def rec {C : native.float → Sort*} (f : Π (a : ℕ), C (native.float.mk a)) (n : native.float) : C n := sorry
 
+meta def cases_on {C : native.float → Sort*} (n : native.float) (f : Π (a : ℕ), C (native.float.mk a)) : C n := sorry
+
 end native.float
 
 @[vm_override native.float native.float]
@@ -61,19 +63,25 @@ def float.pow (a b : float) : float := sorry
 
 instance : has_pow float float := ⟨float.pow⟩
 
-@[vm_override native.float.zero]
+-- @[vm_override native.float.zero]
+-- @[vm_override native.float.zero]
 def zero : float := sorry
 
-@[vm_override native.float.one]
+-- @[vm_override native.float.one]
+-- @[vm_override native.float.one]
 def one : float := sorry
 
-instance : has_one float := ⟨one⟩
+@[vm_override native.float.has_one]
+instance float.has_one : has_one float := ⟨one⟩
 
-instance : has_zero float := ⟨zero⟩
+@[vm_override native.float.has_zero]
+instance float.has_zero : has_zero float := ⟨zero⟩
 
 @[vm_override native.float.to_repr]
 def to_repr (p : float) : string := repr "dummy"
 
 instance : has_repr float := ⟨to_repr⟩
+set_option pp.numerals false
+-- #check  (0.1 + 05 / 0.0000034 : float)
 
 #eval (0.1 + 05 / 0.0000034 : float)

@@ -1272,6 +1272,10 @@ environment add_override(environment const & env, name const & n, name const & n
             name rec_ovr(*ns, "rec");
             checker(rec, rec_ovr);
             ext.add_override(rec, rec_ovr);
+            name destr = inductive::get_destr_name(n);
+            name destr_ovr(*ns, "cases_on");
+            checker(destr, destr_ovr);
+            ext.add_override(destr, destr_ovr);
         }
     }
     return update(env, ext);

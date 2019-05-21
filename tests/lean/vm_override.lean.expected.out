@@ -12,9 +12,10 @@ float₁.rec : Π {C : native.float → Sort l}, (Π (a : ℕ), C (native.float�
 native.float₁.rec : ℕ
 vm_override.lean:39:5: warning: declaration 'native.float.mk' uses sorry
 vm_override.lean:41:5: warning: declaration 'native.float.rec' uses sorry
-vm_override.lean:50:0: warning: declaration 'add' uses sorry
-vm_override.lean:55:0: warning: declaration 'div' uses sorry
-vm_override.lean:60:0: warning: declaration 'float.pow' uses sorry
-vm_override.lean:65:0: warning: declaration 'zero' uses sorry
-vm_override.lean:68:0: warning: declaration 'one' uses sorry
+vm_override.lean:43:5: warning: declaration 'native.float.cases_on' uses sorry
+vm_override.lean:52:0: warning: declaration 'add' uses sorry
+vm_override.lean:57:0: warning: declaration 'div' uses sorry
+vm_override.lean:62:0: warning: declaration 'float.pow' uses sorry
+vm_override.lean:68:0: warning: declaration 'zero' uses sorry
+vm_override.lean:72:0: warning: declaration 'one' uses sorry
 1.47059e+06
